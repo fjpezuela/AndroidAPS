@@ -148,6 +148,7 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
     private val uiInteraction get() = metroGraphs.uiInteraction
     private val processLifecycleListener get() = metroGraphs.processLifecycleListener
     private val localAlertUtils get() = metroGraphs.localAlertUtils
+    private val periodicMaintenance get() = metroGraphs.periodicMaintenance
     private val notificationManager get() = metroGraphs.notificationManager
     private val rh get() = metroGraphs.resourceHelper
     private val loop get() = metroGraphs.loop
@@ -324,8 +325,8 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
     /**
      * The settings could not be opened ([AndroidStorage] says why), so AAPS does not start: no plugins, so no
      * loop, and nothing written to the database. The app runs on an empty store that lives in memory only,
-     * which keeps its parts from crashing without writing over the unreadable file. A notification that
-     * cannot be swiped away says so, and SettingsUnreadableActivity shows the way out.
+     * which keeps its parts from crashing without writing over the unreadable file. An ongoing notification
+     * says so, and SettingsUnreadableActivity shows the way out.
      */
     private fun startWithoutSettings(failure: Exception, notes: List<String>) {
         GeneratedStringOwners.registerAll()
@@ -514,6 +515,9 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
         )
         postSetupNotifications()
         KeepAliveWorker.schedule(this@MainApp)
+        // The worker runs the periodic pass. This adds the check on each new reading, which iOS and
+        // desktop get from PeriodicMaintenance.start, so a low is not held back until the next pass.
+        periodicMaintenance.startGlucoseAlarmTrigger(appScope)
         localAlertUtils.shortenSnoozeInterval()
         localAlertUtils.preSnoozeAlarms()
 
